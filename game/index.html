@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SOLMAR BAY — Open-World Crime</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a1218; font-family: "Segoe UI", system-ui, sans-serif; color: #f2ede2; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; display: none; }
+  .panel { background: rgba(8, 16, 22, 0.72); border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 8px 12px; }
+  #top-left { position: absolute; top: 12px; left: 12px; min-width: 230px; }
+  #cash { font-size: 26px; font-weight: 800; color: #7ee787; }
+  #respect { font-size: 12px; color: #ffc832; letter-spacing: 1px; }
+  .bar { height: 10px; background: #222; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+  #health-fill { height: 100%; width: 100%; background: #2ee86b; }
+  #armor-fill { height: 100%; width: 0%; background: #4aa8e8; }
+  #ammo { font-size: 13px; margin-top: 5px; color: #e8e0d0; }
+  #top-right { position: absolute; top: 12px; right: 12px; text-align: right; }
+  #stars { font-size: 30px; letter-spacing: 4px; text-shadow: 0 0 8px rgba(255,60,60,0.7); }
+  #clock { font-size: 20px; font-weight: 700; }
+  #mission-box { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); max-width: 520px; text-align: center; }
+  #mission-title { font-size: 15px; font-weight: 800; color: #ffc832; letter-spacing: 1px; }
+  #mission { font-size: 14px; margin-top: 2px; }
+  #bottom-left { position: absolute; left: 12px; bottom: 12px; }
+  #minimap { width: 170px; height: 170px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.35); display: block; }
+  #bottom-right { position: absolute; right: 12px; bottom: 12px; text-align: right; }
+  #speed { font-size: 34px; font-weight: 800; }
+  #carname { font-size: 13px; color: #ffc832; }
+  #hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #d8d2c2; }
+  #feed { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); font-size: 17px; font-weight: 700; color: #fff; text-shadow: 0 2px 6px #000; opacity: 0; transition: opacity 0.4s; text-align: center; max-width: 640px; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; display: none; }
+  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: #fff; }
+  #crosshair::before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #crosshair::after { left: 0; top: 6px; width: 14px; height: 2px; }
+  .screen { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; text-align: center; background: linear-gradient(180deg, rgba(10,20,40,0.55), rgba(20,8,20,0.75)); z-index: 5; }
+  .screen h1 { font-size: 64px; margin: 0; letter-spacing: 6px; color: #ffc832; text-shadow: 0 4px 0 #b83a2a, 0 8px 24px #000; }
+  .screen h2 { font-size: 20px; font-weight: 400; color: #ffe9a8; margin: 8px 0 0; }
+  .screen p { max-width: 620px; font-size: 15px; line-height: 1.55; color: #e8e0d0; }
+  .screen .big { font-size: 18px; font-weight: 700; color: #fff; margin-top: 18px; }
+  .screen .keys { font-size: 13px; color: #b8c8d8; margin-top: 10px; line-height: 1.8; }
+  #title-stats { font-size: 14px; color: #7ee787; margin-top: 8px; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Solmar Bay: an original open-world crime game. Drive, steal cars, outrun police, run missions."></canvas>
+<div id="hud">
+  <div id="top-left" class="panel">
+    <div id="cash">$250</div>
+    <div id="respect">REP 0</div>
+    <div class="bar"><div id="health-fill"></div></div>
+    <div class="bar"><div id="armor-fill"></div></div>
+    <div id="ammo">AMMO 60</div>
+  </div>
+  <div id="top-right" class="panel">
+    <div id="stars">☆☆☆☆☆</div>
+    <div id="clock">09:12</div>
+  </div>
+  <div id="mission-box" class="panel">
+    <div id="mission-title">Free roam</div>
+    <div id="mission">Welcome to Solmar Bay.</div>
+  </div>
+  <div id="bottom-left"><canvas id="minimap" width="170" height="170"></canvas></div>
+  <div id="bottom-right" class="panel"><div id="speed"></div><div id="carname"></div></div>
+  <div id="hint"></div>
+  <div id="feed"></div>
+  <div id="crosshair"></div>
+</div>
+<div id="screen-title" class="screen" style="display:flex">
+  <h1>SOLMAR BAY</h1>
+  <h2>An original open-world crime story — sun, sea, sirens.</h2>
+  <p>Jace Rivera came home to Solmar Bay with nothing but a duffel bag and a debt.
+  Fixer Sal Delgado offers a way up — one job at a time. Steal cars, outrun the Bay Police,
+  clear the warehouse, and pull the Big Score at the casino. Six missions, one city, yours to take.</p>
+  <div id="title-stats"></div>
+  <div class="big">Press ENTER or click to play</div>
+  <div class="keys">WASD / Arrows — move &amp; drive &nbsp;•&nbsp; Mouse drag — camera &nbsp;•&nbsp; Click — shoot<br>
+  E — enter / steal car &nbsp;•&nbsp; Q — start mission &nbsp;•&nbsp; Space — handbrake &nbsp;•&nbsp; Esc — pause &nbsp;•&nbsp; M — mute<br>
+  Progress saves automatically (localStorage). Pay-N-Spray clears wanted for $200.</div>
+</div>
+<div id="screen-pause" class="screen">
+  <h1>PAUSED</h1>
+  <p>Solmar Bay waits for no one — except right now.</p>
+  <div class="big">Press Esc or Enter to keep playing</div>
+</div>
+<div id="screen-busted" class="screen">
+  <h1 id="over-title">BUSTED!</h1>
+  <p id="over-text"></p>
+  <div class="big">Press ENTER to get back on the streets</div>
+</div>
+<div id="screen-over" class="screen">
+  <h1>WASTED!</h1>
+  <p id="over-text-2"></p>
+  <div class="big">Press ENTER to continue</div>
+</div>
+<div id="screen-complete" class="screen">
+  <h1>SOLMAR BAY IS YOURS</h1>
+  <p id="complete-text"></p>
+  <div class="big">Press ENTER to keep cruising free roam</div>
+</div>
+<p id="status" role="status" aria-live="polite"></p>
+<script type="importmap">{"imports": {"three": "./vendor/three.module.min.js"}}</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
